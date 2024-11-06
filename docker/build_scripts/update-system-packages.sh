@@ -21,9 +21,18 @@ if [ "${AUDITWHEEL_POLICY}" == "manylinux2014" ]; then
 	yum clean all
 	rm -rf /var/cache/yum
 elif [ "${AUDITWHEEL_POLICY}" == "manylinux_2_28" ]; then
-	dnf -y upgrade
-	dnf clean all
-	rm -rf /var/cache/yum
+	export DEBIAN_FRONTEND=noninteractive
+	apt-get update -qq
+	apt-get upgrade -qq -y
+	apt-get clean -qq
+	rm -rf /var/lib/apt/lists/*
+	if [ "${AUDITWHEEL_ARCH}" == "s390x" ] || [ "${AUDITWHEEL_ARCH}" == "ppc64le" ]; then
+		# those arch are missing some updates
+		# we need to manually delete some certificates...
+		sed -i '/DST_Root_CA_X3.crt$/d' /etc/ca-certificates.conf
+		find /etc/ssl/certs -name 'DST_Root_CA_X3.pem' -delete
+		update-ca-certificates
+	fi
 elif [ "${BASE_POLICY}" == "musllinux" ]; then
 	apk upgrade --no-cache
 else
